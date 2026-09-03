@@ -447,7 +447,7 @@ Location: {demand.get("Source Location","")} | Start: {demand.get("Requested Sta
 CANDIDATES:
 {json.dumps(candidate_list, separators=(',', ':'))}
 
-Fields: id=personnel_no, n=name, lv=level, sk=primary_skill, pf=proficiency(P1=expert), ss=secondary_skills, av=availability, sd=schedulable_date, lo=location
+Fields: id=personnel_no, n=name, lv=level, sk=primary_skill, pf=proficiency(P1=lowest,P5=highest), ss=secondary_skills, av=availability, sd=schedulable_date, lo=location
 
 Rank by: 1)skill match 2)level match 3)bench/available first 4)secondary skills 5)earlier schedulable date
 
