@@ -11,40 +11,49 @@ import {
   Clock,
   Mail,
   MapPin,
+  Settings2,
   Sparkles,
   User,
   XCircle,
   Zap,
 } from 'lucide-react'
 import { getDemand, matchResources } from '../api'
-import type { FitScore, MatchResponse, MatchResult } from '../types'
+import type { FitScore, MatchConfig, MatchResponse, MatchResult } from '../types'
+
+const DEFAULT_CONFIG: MatchConfig = {
+  level_window: 2,
+  availability_filter: 'all',
+  location_filter: 'all',
+  skill_strictness: 'any',
+}
 
 export default function MatchPage() {
   const { rrdNumber } = useParams<{ rrdNumber: string }>()
   const navigate = useNavigate()
 
   const [demand, setDemand] = useState<Record<string, string>>({})
+  const [config, setConfig] = useState<MatchConfig>(DEFAULT_CONFIG)
   const [result, setResult] = useState<MatchResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [demandExpanded, setDemandExpanded] = useState(true)
+  const [hasRun, setHasRun] = useState(false)
 
-  // Load demand details independently so header always shows
+  // Load demand details so header and config defaults show immediately
   useEffect(() => {
     if (!rrdNumber) return
-    getDemand(decodeURIComponent(rrdNumber))
-      .then(setDemand)
-      .catch(() => {})
+    getDemand(decodeURIComponent(rrdNumber)).then(setDemand).catch(() => {})
   }, [rrdNumber])
 
-  const run = async () => {
+  const run = async (cfg: MatchConfig = config) => {
     if (!rrdNumber) return
     setLoading(true)
     setError('')
     setResult(null)
+    setHasRun(true)
     try {
-      const r = await matchResources(decodeURIComponent(rrdNumber))
-      setDemand(r.demand) // also update demand from match result (richer data)
+      const r = await matchResources(decodeURIComponent(rrdNumber), cfg)
+      setDemand(r.demand)
       setResult(r)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Matching failed')
@@ -52,9 +61,6 @@ export default function MatchPage() {
       setLoading(false)
     }
   }
-
-  // Auto-run on load
-  useEffect(() => { run() }, [rrdNumber]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const d = demand
 
@@ -116,7 +122,122 @@ export default function MatchPage() {
           )}
         </div>
 
-        {/* Match trigger / results */}
+        {/* Config panel — always visible until results load */}
+        {!loading && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <Settings2 size={16} className="text-brand" />
+              <span className="font-semibold text-gray-800">Match Configuration</span>
+              {hasRun && (
+                <span className="ml-auto text-xs text-gray-400">Adjust filters and re-run to update results</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Level window */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Level Range</p>
+                <div className="flex flex-wrap gap-2">
+                  {[{ v: 0, label: 'Exact only' }, { v: 1, label: '±1 level' }, { v: 2, label: '±2 levels' }, { v: 3, label: '±3 levels' }].map(({ v, label }) => (
+                    <button
+                      key={v}
+                      onClick={() => setConfig((c) => ({ ...c, level_window: v }))}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                        config.level_window === v
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Availability */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Availability</p>
+                <div className="flex flex-wrap gap-2">
+                  {[{ v: 'all', label: 'All resources' }, { v: 'bench_only', label: 'Bench / Available only' }].map(({ v, label }) => (
+                    <button
+                      key={v}
+                      onClick={() => setConfig((c) => ({ ...c, availability_filter: v as MatchConfig['availability_filter'] }))}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                        config.availability_filter === v
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Location</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: 'all', label: 'All locations' },
+                    { v: 'demand', label: d['Source Location'] ? `${d['Source Location']} only` : 'Match demand location' },
+                  ].map(({ v, label }) => (
+                    <button
+                      key={v}
+                      onClick={() => setConfig((c) => ({ ...c, location_filter: v as MatchConfig['location_filter'] }))}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                        config.location_filter === v
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Skill match */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Skill Match</p>
+                <div className="flex flex-wrap gap-2">
+                  {[{ v: 'any', label: 'Primary or secondary' }, { v: 'primary_only', label: 'Primary must match' }].map(({ v, label }) => (
+                    <button
+                      key={v}
+                      onClick={() => setConfig((c) => ({ ...c, skill_strictness: v as MatchConfig['skill_strictness'] }))}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                        config.skill_strictness === v
+                          ? 'bg-brand text-white border-brand'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={() => run(config)}
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-semibold text-sm px-6 py-2.5 rounded-xl shadow-md shadow-brand/20 transition-all hover:scale-[1.02] active:scale-100"
+              >
+                <Sparkles size={15} />
+                {hasRun ? 'Re-run Match' : 'Run AI Match'}
+              </button>
+              {hasRun && (
+                <button
+                  onClick={() => { setConfig(DEFAULT_CONFIG) }}
+                  className="text-xs text-gray-400 hover:text-brand underline"
+                >
+                  Reset to defaults
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {loading && <LoadingState />}
 
         {error && (
@@ -125,7 +246,7 @@ export default function MatchPage() {
             <div>
               <p className="font-medium">Matching failed</p>
               <p className="mt-1 text-red-500">{error}</p>
-              <button onClick={run} className="mt-2 text-brand underline text-xs">Try again</button>
+              <button onClick={() => run(config)} className="mt-2 text-brand underline text-xs">Try again</button>
             </div>
           </div>
         )}
@@ -147,7 +268,7 @@ export default function MatchPage() {
             {/* Match cards */}
             {result.matches.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
-                No suitable matches found. Try expanding the skill or level criteria.
+                No suitable matches found. Try relaxing your filters.
               </div>
             ) : (
               <div className="flex flex-col gap-4">

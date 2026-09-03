@@ -21,6 +21,13 @@ export interface Demand {
   'Demand Segmentation': string
 }
 
+export interface MatchConfig {
+  level_window: number          // ±N levels from required (0 = exact)
+  availability_filter: 'all' | 'bench_only'
+  location_filter: 'all' | 'demand'
+  skill_strictness: 'any' | 'primary_only'
+}
+
 export type FitScore = 'Excellent' | 'Good' | 'Fair'
 
 export interface MatchResult {

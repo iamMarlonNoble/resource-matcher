@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
 
@@ -331,7 +331,7 @@ def get_demand(rrd_number: str):
 
 
 @app.post("/api/match/{rrd_number}")
-def match_resources(rrd_number: str):
+def match_resources(rrd_number: str, body: dict = Body(default={})):
     if store["demands"] is None or store["roster"] is None:
         raise HTTPException(status_code=400, detail="Both files must be uploaded first")
 
@@ -349,41 +349,69 @@ def match_resources(rrd_number: str):
     required_level = safe_str(demand.get("Management Level", ""))
     level_flex = safe_str(demand.get("Management Level Flex", "N")).upper() == "Y"
 
-    # Pre-filter by level: allow ±2 from required level (1=highest, 13=lowest)
-    LEVEL_WINDOW = 2
+    # Read filter config from request body (with defaults)
+    level_window = int(body.get("level_window", 2))
+    availability_filter = body.get("availability_filter", "all")   # "all" | "bench_only"
+    location_filter = body.get("location_filter", "all")           # "all" | "demand"
+    skill_strictness = body.get("skill_strictness", "any")         # "any" | "primary_only"
+
+    # Filter by level (±N from required; 1=highest, 13=lowest)
     try:
         req_lvl_int = int(required_level)
-        lvl_min = req_lvl_int - LEVEL_WINDOW
-        lvl_max = req_lvl_int + LEVEL_WINDOW
+        lvl_min = req_lvl_int - level_window
+        lvl_max = req_lvl_int + level_window
         roster["_level_int"] = pd.to_numeric(roster["Level"], errors="coerce")
-        roster = roster[
-            roster["_level_int"].between(lvl_min, lvl_max)
-        ].copy()
+        roster = roster[roster["_level_int"].between(lvl_min, lvl_max)].copy()
     except (ValueError, TypeError):
-        pass  # if level is non-numeric, skip level filtering
+        pass
 
-    # Pre-filter by skill keywords
-    all_keywords = [
-        k.strip().lower()
-        for k in (required_skill + " " + additional_skills).replace(",", " ").split()
-        if len(k.strip()) > 3
-    ]
+    # Filter by availability
+    if availability_filter == "bench_only":
+        roster = roster[
+            roster["Availability"].str.contains("Available|Bench|Partially", case=False, na=False)
+        ].copy()
 
+    # Filter by location (match demand's Source Location against Home Loc / Resource Location)
+    if location_filter == "demand":
+        demand_location = safe_str(demand.get("Source Location", "")).strip()
+        if demand_location:
+            roster = roster[
+                roster["Home Loc"].str.contains(demand_location, case=False, na=False)
+                | roster["Resource Location"].str.contains(demand_location, case=False, na=False)
+            ].copy()
+
+    # Pre-filter by skill
     MAX_CANDIDATES = 12  # keep total prompt under 7000 tokens (free-tier limit)
 
-    if all_keywords:
-        def skill_score(row):
-            text = f"{row.get('Primary Skill', '')} {row.get('Secondary Skills', '')}".lower()
-            return sum(1 for kw in all_keywords if kw in text)
-
-        roster["_score"] = roster.apply(skill_score, axis=1)
-        matched = roster[roster["_score"] > 0].sort_values("_score", ascending=False)
-        unmatched = roster[roster["_score"] == 0]
-        candidates = pd.concat([matched.head(MAX_CANDIDATES), unmatched.head(2)]).drop_duplicates(
-            subset="Personnel No"
-        ).head(MAX_CANDIDATES)
-    else:
+    if skill_strictness == "primary_only":
+        # Hard filter: primary skill must contain the required skill keyword
+        primary_keywords = [k.strip().lower() for k in required_skill.replace(",", " ").split() if len(k.strip()) > 3]
+        if primary_keywords:
+            def primary_match(row):
+                text = row.get("Primary Skill", "").lower()
+                return any(kw in text for kw in primary_keywords)
+            roster = roster[roster.apply(primary_match, axis=1)].copy()
         candidates = roster.head(MAX_CANDIDATES)
+    else:
+        # Soft filter: score by keyword presence across primary + secondary skills
+        all_keywords = [
+            k.strip().lower()
+            for k in (required_skill + " " + additional_skills).replace(",", " ").split()
+            if len(k.strip()) > 3
+        ]
+        if all_keywords:
+            def skill_score(row):
+                text = f"{row.get('Primary Skill', '')} {row.get('Secondary Skills', '')}".lower()
+                return sum(1 for kw in all_keywords if kw in text)
+
+            roster["_score"] = roster.apply(skill_score, axis=1)
+            matched = roster[roster["_score"] > 0].sort_values("_score", ascending=False)
+            unmatched = roster[roster["_score"] == 0]
+            candidates = pd.concat([matched.head(MAX_CANDIDATES), unmatched.head(2)]).drop_duplicates(
+                subset="Personnel No"
+            ).head(MAX_CANDIDATES)
+        else:
+            candidates = roster.head(MAX_CANDIDATES)
 
     def top_skills(s: str, n: int = 3) -> str:
         parts = [x.strip() for x in s.split(",") if x.strip()]

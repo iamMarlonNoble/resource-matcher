@@ -1,4 +1,4 @@
-import type { Demand, MatchResponse, HealthResponse } from './types'
+import type { Demand, MatchConfig, MatchResponse, HealthResponse } from './types'
 
 const BASE = 'http://localhost:8000'
 
@@ -65,6 +65,10 @@ export async function getDemand(rrdNumber: string): Promise<Record<string, strin
   return req(`/api/demands/${encodeURIComponent(rrdNumber)}`)
 }
 
-export async function matchResources(rrdNumber: string): Promise<MatchResponse> {
-  return req(`/api/match/${encodeURIComponent(rrdNumber)}`, { method: 'POST' })
+export async function matchResources(rrdNumber: string, config?: MatchConfig): Promise<MatchResponse> {
+  return req(`/api/match/${encodeURIComponent(rrdNumber)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config ?? {}),
+  })
 }
