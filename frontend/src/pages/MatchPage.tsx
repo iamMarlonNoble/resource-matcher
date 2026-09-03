@@ -273,14 +273,34 @@ export default function MatchPage() {
         {result && !loading && (
           <>
             {/* AI Summary */}
-            <div className="bg-brand-subtle dark:bg-brand/10 border border-brand/20 rounded-2xl p-5 flex gap-3">
-              <Sparkles size={20} className="text-brand shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-brand mb-1">AI Match Summary</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.summary}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                  Evaluated {result.total_candidates_evaluated} candidates · {result.matches.length} match{result.matches.length !== 1 ? 'es' : ''} found
-                </p>
+            <div className="bg-brand-subtle dark:bg-brand/10 border border-brand/20 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 pt-4 pb-3">
+                <Sparkles size={16} className="text-brand shrink-0" />
+                <p className="text-sm font-bold text-brand">AI Match Report</p>
+                <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+                  {result.total_candidates_evaluated} evaluated · {result.matches.length} ranked
+                </span>
+              </div>
+
+              <div className="px-5 pb-5 space-y-4">
+                {result.summary && (
+                  <div>
+                    <p className="text-xs font-semibold text-brand/70 uppercase tracking-wide mb-1.5">Overall Assessment</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.summary}</p>
+                  </div>
+                )}
+                {result.ranking_rationale && (
+                  <div>
+                    <p className="text-xs font-semibold text-brand/70 uppercase tracking-wide mb-1.5">Ranking Rationale</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.ranking_rationale}</p>
+                  </div>
+                )}
+                {result.pool_insights && (
+                  <div>
+                    <p className="text-xs font-semibold text-brand/70 uppercase tracking-wide mb-1.5">Talent Pool Insights</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.pool_insights}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -525,7 +545,7 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-gray-100 p-5 space-y-4">
+        <div className="border-t border-gray-100 dark:border-gray-700 p-5 space-y-4">
           {/* AI reasoning */}
           <div className="flex gap-2">
             <Sparkles size={15} className="text-brand shrink-0 mt-0.5" />
@@ -619,7 +639,7 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
       {/* Collapse toggle */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-center py-2 text-xs text-gray-400 hover:text-gray-600 border-t border-gray-100 transition-colors"
+        className="w-full flex items-center justify-center py-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border-t border-gray-100 dark:border-gray-700 transition-colors"
       >
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         <span className="ml-1">{expanded ? 'Less' : 'More'}</span>

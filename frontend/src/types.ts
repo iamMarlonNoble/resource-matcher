@@ -59,8 +59,11 @@ export interface MatchResponse {
   demand: Record<string, string>
   matches: MatchResult[]
   summary: string
+  ranking_rationale: string
+  pool_insights: string
   total_candidates_evaluated: number
 }
+
 
 export interface HealthResponse {
   status: string

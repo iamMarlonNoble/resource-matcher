@@ -451,8 +451,11 @@ Fields: id=personnel_no, n=name, lv=level, sk=primary_skill, pf=proficiency(P1=l
 
 Rank by: 1)skill match 2)level match 3)bench/available first 4)secondary skills 5)earlier schedulable date
 
-Return a JSON object with this exact shape:
+Return a JSON object with this exact shape (write summary FIRST before matches):
 {{
+  "summary": "<3-4 sentence overall assessment: name the top candidate and why they rank first, comment on the general quality of the talent pool, flag any notable concerns such as availability gaps or skill mismatches across the pool>",
+  "ranking_rationale": "<2-3 sentences explaining the key factors that drove the ranking order — what separated the top candidates from those ranked lower>",
+  "pool_insights": "<1-2 sentences on patterns observed across the candidate pool, e.g. common strengths or widespread gaps relative to this demand>",
   "matches": [
     {{
       "personnel_no": "<use id field>",
@@ -463,14 +466,13 @@ Return a JSON object with this exact shape:
       "strengths": ["<skill or trait>"],
       "gaps": []
     }}
-  ],
-  "summary": "<2 sentences naming the best candidate and why>"
+  ]
 }}"""
 
     try:
         msg = ai_client.chat.completions.create(
             model=GROQ_MODEL,
-            max_tokens=2500,
+            max_tokens=3500,
             temperature=0.1,
             response_format={"type": "json_object"},
             messages=[
@@ -515,5 +517,7 @@ Return a JSON object with this exact shape:
         "demand": demand_dict,
         "matches": enriched,
         "summary": str(ai_result.get("summary", "")),
+        "ranking_rationale": str(ai_result.get("ranking_rationale", "")),
+        "pool_insights": str(ai_result.get("pool_insights", "")),
         "total_candidates_evaluated": len(candidates),
     }
