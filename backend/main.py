@@ -476,7 +476,7 @@ Return a JSON object with this exact shape:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a resource management assistant. Respond with valid JSON only.",
+                    "content": "You are a resource management assistant. Respond with valid JSON only. When referring to candidates, use neutral language — use their name or 'this candidate' instead of he/she/him/her.",
                 },
                 {"role": "user", "content": prompt},
             ],
