@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Data files — keep these off GitHub (contain sensitive roster/demand data)
+backend/data/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
