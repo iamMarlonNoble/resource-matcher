@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { getDemand, matchResources } from '../api'
 import type { FitScore, MatchConfig, MatchResponse, MatchResult } from '../types'
+import ThemeToggle from '../components/ThemeToggle'
 
 const DEFAULT_CONFIG: MatchConfig = {
   level_window: 2,
@@ -82,13 +83,13 @@ export default function MatchPage() {
   const d = demand
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate('/demands')}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           >
             <ArrowLeft size={16} /> Demands
           </button>
@@ -96,37 +97,38 @@ export default function MatchPage() {
             <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
               <Zap size={14} className="text-white" />
             </div>
-            <span className="font-bold text-gray-900">Resource Matcher</span>
+            <span className="font-bold text-gray-900 dark:text-white">Resource Matcher</span>
           </div>
+          <div className="ml-auto"><ThemeToggle /></div>
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col gap-5">
         {/* Demand summary card */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <button
             onClick={() => setDemandExpanded((v) => !v)}
             className="w-full flex items-start gap-4 p-6 text-left"
           >
-            <div className="w-11 h-11 rounded-xl bg-brand-subtle flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-brand-subtle dark:bg-brand/20 flex items-center justify-center shrink-0">
               <Briefcase size={20} className="text-brand" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-bold text-gray-900 truncate">
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
                   {d['Project'] || rrdNumber}
                 </h1>
-                <span className="text-xs font-mono text-gray-400">{d['RRD Number']}</span>
+                <span className="text-xs font-mono text-gray-400 dark:text-gray-500">{d['RRD Number']}</span>
               </div>
-              <p className="text-sm text-gray-500 mt-0.5">{d['Client']} · {d['Engagement Name']}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{d['Client']} · {d['Engagement Name']}</p>
             </div>
-            <div className="shrink-0 text-gray-400">
+            <div className="shrink-0 text-gray-400 dark:text-gray-500">
               {demandExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </div>
           </button>
 
           {demandExpanded && (
-            <div className="border-t border-gray-100 px-6 pb-6 pt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="border-t border-gray-100 dark:border-gray-700 px-6 pb-6 pt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
               <InfoCell icon={<Award size={14} />} label="Required Skill" value={d['Primary Skill']} highlight />
               <InfoCell icon={<User size={14} />} label="Level" value={d['Management Level'] ? `Level ${d['Management Level']}${d['Management Level Flex'] === 'Y' ? ' (flex)' : ''}` : ''} />
               <InfoCell icon={<MapPin size={14} />} label="Location" value={d['Source Location']} />
@@ -141,12 +143,12 @@ export default function MatchPage() {
 
         {/* Config panel — always visible until results load */}
         {!loading && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-5">
               <Settings2 size={16} className="text-brand" />
-              <span className="font-semibold text-gray-800">Match Configuration</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">Match Configuration</span>
               {hasRun && (
-                <span className="ml-auto text-xs text-gray-400">Adjust filters and re-run to update results</span>
+                <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">Adjust filters and re-run to update results</span>
               )}
             </div>
 
@@ -162,7 +164,7 @@ export default function MatchPage() {
                       className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                         config.level_window === v
                           ? 'bg-brand text-white border-brand'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-brand hover:text-brand'
                       }`}
                     >
                       {label}
@@ -182,7 +184,7 @@ export default function MatchPage() {
                       className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                         config.availability_filter === v
                           ? 'bg-brand text-white border-brand'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-brand hover:text-brand'
                       }`}
                     >
                       {label}
@@ -205,7 +207,7 @@ export default function MatchPage() {
                       className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                         config.location_filter === v
                           ? 'bg-brand text-white border-brand'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-brand hover:text-brand'
                       }`}
                     >
                       {label}
@@ -225,7 +227,7 @@ export default function MatchPage() {
                       className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
                         config.skill_strictness === v
                           ? 'bg-brand text-white border-brand'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-brand hover:text-brand'
                       }`}
                     >
                       {label}
@@ -258,11 +260,11 @@ export default function MatchPage() {
         {loading && <LoadingState />}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-red-600 text-sm flex items-start gap-3">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-5 text-red-600 dark:text-red-400 text-sm flex items-start gap-3">
             <XCircle size={18} className="shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">Matching failed</p>
-              <p className="mt-1 text-red-500">{error}</p>
+              <p className="mt-1 text-red-500 dark:text-red-400">{error}</p>
               <button onClick={() => run(config)} className="mt-2 text-brand underline text-xs">Try again</button>
             </div>
           </div>
@@ -271,12 +273,12 @@ export default function MatchPage() {
         {result && !loading && (
           <>
             {/* AI Summary */}
-            <div className="bg-brand-subtle border border-brand/20 rounded-2xl p-5 flex gap-3">
+            <div className="bg-brand-subtle dark:bg-brand/10 border border-brand/20 rounded-2xl p-5 flex gap-3">
               <Sparkles size={20} className="text-brand shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-brand mb-1">AI Match Summary</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{result.summary}</p>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.summary}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                   Evaluated {result.total_candidates_evaluated} candidates · {result.matches.length} match{result.matches.length !== 1 ? 'es' : ''} found
                 </p>
               </div>
@@ -285,16 +287,16 @@ export default function MatchPage() {
             {/* Results header with view toggle */}
             {result.matches.length > 0 && (
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {result.matches.length} candidate{result.matches.length !== 1 ? 's' : ''} ranked
                 </p>
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('detailed')}
                     className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
                       viewMode === 'detailed'
-                        ? 'bg-white text-gray-800 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
                     <LayoutList size={13} /> Detailed
@@ -303,8 +305,8 @@ export default function MatchPage() {
                     onClick={() => setViewMode('compact')}
                     className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
                       viewMode === 'compact'
-                        ? 'bg-white text-gray-800 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                     }`}
                   >
                     <AlignJustify size={13} /> Compact
@@ -389,10 +391,10 @@ function InfoCell({ icon, label, value, highlight }: { icon: React.ReactNode; la
   if (!value) return null
   return (
     <div>
-      <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
+      <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 mb-1">
         {icon} {label}
       </div>
-      <p className={`text-sm font-medium ${highlight ? 'text-brand' : 'text-gray-800'} leading-snug`}>
+      <p className={`text-sm font-medium ${highlight ? 'text-brand' : 'text-gray-800 dark:text-gray-200'} leading-snug`}>
         {value}
       </p>
     </div>
@@ -401,15 +403,15 @@ function InfoCell({ icon, label, value, highlight }: { icon: React.ReactNode; la
 
 function LoadingState() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 flex flex-col items-center gap-4">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-12 flex flex-col items-center gap-4">
       <div className="relative">
-        <div className="w-14 h-14 border-4 border-brand-subtle rounded-full" />
+        <div className="w-14 h-14 border-4 border-brand-subtle dark:border-brand/20 rounded-full" />
         <div className="absolute inset-0 w-14 h-14 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         <Sparkles size={20} className="absolute inset-0 m-auto text-brand" />
       </div>
       <div className="text-center">
-        <p className="font-semibold text-gray-800">AI is matching resources…</p>
-        <p className="text-sm text-gray-400 mt-1">Analysing skills, availability, and level fit</p>
+        <p className="font-semibold text-gray-800 dark:text-gray-200">AI is matching resources…</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Analysing skills, availability, and level fit</p>
       </div>
     </div>
   )
@@ -453,7 +455,7 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
     (m.Availability || '').toLowerCase().includes('bench')
 
   return (
-    <div className={`bg-white rounded-2xl border ${selected ? 'border-brand ring-2 ring-brand/20' : cfg.border} shadow-sm overflow-hidden transition-all`}>
+    <div className={`bg-white dark:bg-gray-900 rounded-2xl border ${selected ? 'border-brand ring-2 ring-brand/20' : `${cfg.border} dark:border-gray-700`} shadow-sm overflow-hidden transition-all`}>
       {/* Card header — always visible */}
       <div
         className="p-5 cursor-pointer select-none"
@@ -481,8 +483,8 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
           {/* Name + quick info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-gray-900 text-base">{m.name || m.Name}</span>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{m.name || m.Name}</span>
+              <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
                 Level {m.Level}
               </span>
               {isAvailable && (
@@ -527,17 +529,17 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
           {/* AI reasoning */}
           <div className="flex gap-2">
             <Sparkles size={15} className="text-brand shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-700 leading-relaxed">{m.reasoning}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{m.reasoning}</p>
           </div>
 
           {/* Strengths & Gaps */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {m.strengths?.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Strengths</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Strengths</p>
                 <ul className="space-y-1">
                   {m.strengths.map((s, i) => (
-                    <li key={i} className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <li key={i} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                       <CheckCircle size={13} className="text-emerald-500 shrink-0" />
                       {s}
                     </li>
@@ -547,10 +549,10 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
             )}
             {m.gaps?.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Gaps</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Gaps</p>
                 <ul className="space-y-1">
                   {m.gaps.map((g, i) => (
-                    <li key={i} className="flex items-center gap-1.5 text-sm text-gray-700">
+                    <li key={i} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                       <XCircle size={13} className="text-amber-400 shrink-0" />
                       {g}
                     </li>
@@ -563,10 +565,10 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
           {/* Secondary skills */}
           {secondarySkills.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Secondary Skills</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Secondary Skills</p>
               <div className="flex flex-wrap gap-1.5">
                 {secondarySkills.map((s) => (
-                  <span key={s} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                  <span key={s} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2.5 py-1 rounded-full">
                     {s}
                   </span>
                 ))}
@@ -575,17 +577,17 @@ function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }:
           )}
 
           {/* Availability & location row */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 pt-1 border-t border-gray-100">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
             {m['Roll Off Date'] && (
               <span className="flex items-center gap-1.5">
                 <Calendar size={13} className="text-gray-400" />
-                Roll-off: <strong className="text-gray-800">{m['Roll Off Date']}</strong>
+                Roll-off: <strong className="text-gray-800 dark:text-gray-200">{m['Roll Off Date']}</strong>
               </span>
             )}
             {m['Schedulable As Of'] && (
               <span className="flex items-center gap-1.5">
                 <Clock size={13} className="text-gray-400" />
-                Schedulable: <strong className="text-gray-800">{m['Schedulable As Of']}</strong>
+                Schedulable: <strong className="text-gray-800 dark:text-gray-200">{m['Schedulable As Of']}</strong>
               </span>
             )}
             {m['Resource Location'] && (
@@ -636,7 +638,7 @@ function CompactRow({ match: m, rank, isLast, selected, onToggleSelect, selectDi
     (m.Availability || '').toLowerCase().includes('bench')
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${selected ? 'bg-brand/5' : ''} ${!isLast ? 'border-b border-gray-100' : ''}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selected ? 'bg-brand/5' : ''} ${!isLast ? 'border-b border-gray-100 dark:border-gray-700' : ''}`}>
       {/* Checkbox */}
       <div
         onClick={() => { if (!selectDisabled) onToggleSelect() }}
@@ -655,8 +657,8 @@ function CompactRow({ match: m, rank, isLast, selected, onToggleSelect, selectDi
       {/* Name + level */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-gray-900 text-sm">{m.name || m.Name}</span>
-          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Lv {m.Level}</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{m.name || m.Name}</span>
+          <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">Lv {m.Level}</span>
           {isAvailable && (
             <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
               {m.Availability}
@@ -691,42 +693,42 @@ function ComparisonModal({ matches, onClose }: { matches: MatchResult[]; onClose
   const colWidth = matches.length === 2 ? 'w-1/2' : matches.length === 3 ? 'w-1/3' : 'w-1/4'
 
   const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="flex border-b border-gray-100 last:border-0">
-      <div className="w-36 shrink-0 px-4 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-start pt-3.5">
+    <div className="flex border-b border-gray-100 dark:border-gray-700 last:border-0">
+      <div className="w-36 shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-start pt-3.5">
         {label}
       </div>
-      <div className="flex flex-1 divide-x divide-gray-100">{children}</div>
+      <div className="flex flex-1 divide-x divide-gray-100 dark:divide-gray-700">{children}</div>
     </div>
   )
 
   const Cell = ({ children }: { children: React.ReactNode }) => (
-    <div className={`${colWidth} px-4 py-3 text-sm text-gray-700 min-w-0`}>{children}</div>
+    <div className={`${colWidth} px-4 py-3 text-sm text-gray-700 dark:text-gray-300 min-w-0`}>{children}</div>
   )
 
   return (
     <div className="fixed inset-0 z-30 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <Columns2 size={18} className="text-brand" />
-          <h2 className="font-bold text-gray-900">Comparing {matches.length} Candidates</h2>
-          <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-700 transition-colors">
+          <h2 className="font-bold text-gray-900 dark:text-white">Comparing {matches.length} Candidates</h2>
+          <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
             <X size={20} />
           </button>
         </div>
 
         {/* Candidate name headers */}
-        <div className="flex border-b border-gray-200 shrink-0">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="w-36 shrink-0" />
           <div className="flex flex-1 divide-x divide-gray-100">
             {matches.map((m) => {
               const cfg = fitConfig[m.fit_score] ?? fitConfig.Fair
               return (
                 <div key={m.personnel_no} className={`${colWidth} px-4 py-3`}>
-                  <p className="font-bold text-gray-900 text-sm truncate">{m.name || m.Name}</p>
+                  <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{m.name || m.Name}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className={`text-xs font-bold ${cfg.text}`}>{m.fit_percentage}%</span>
                     <div className={`flex items-center gap-1 ${cfg.bg} ${cfg.text} px-2 py-0.5 rounded-full`}>
