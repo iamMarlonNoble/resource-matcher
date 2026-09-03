@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
   Briefcase,
   Calendar,
   ChevronRight,
@@ -13,6 +16,16 @@ import {
 } from 'lucide-react'
 import { getDemandFilters, getDemands } from '../api'
 import type { Demand } from '../types'
+
+type SortField = 'Project' | 'Requested Start Date' | 'Ageing in Weeks' | 'Management Level'
+type SortDir = 'asc' | 'desc'
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+  { field: 'Project', label: 'Project' },
+  { field: 'Requested Start Date', label: 'Start Date' },
+  { field: 'Ageing in Weeks', label: 'Ageing' },
+  { field: 'Management Level', label: 'Level' },
+]
 
 export default function Demands() {
   const navigate = useNavigate()
@@ -27,6 +40,9 @@ export default function Demands() {
   const [skills, setSkills] = useState<string[]>([])
   const [levels, setLevels] = useState<string[]>([])
 
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -40,6 +56,36 @@ export default function Demands() {
       setLoading(false)
     }
   }, [search, skill, level])
+
+  const sortedDemands = useMemo(() => {
+    if (!sortField) return demands
+    return [...demands].sort((a, b) => {
+      let aVal = a[sortField] ?? ''
+      let bVal = b[sortField] ?? ''
+      if (sortField === 'Ageing in Weeks' || sortField === 'Management Level') {
+        const aNum = parseFloat(aVal) || 0
+        const bNum = parseFloat(bVal) || 0
+        return sortDir === 'asc' ? aNum - bNum : bNum - aNum
+      }
+      if (sortField === 'Requested Start Date') {
+        const aDate = new Date(aVal).getTime() || 0
+        const bDate = new Date(bVal).getTime() || 0
+        return sortDir === 'asc' ? aDate - bDate : bDate - aDate
+      }
+      return sortDir === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal)
+    })
+  }, [demands, sortField, sortDir])
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
 
   useEffect(() => {
     getDemandFilters().then((f) => {
@@ -127,6 +173,40 @@ export default function Demands() {
           )}
         </div>
 
+        {/* Sort bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Sort by</span>
+          {SORT_OPTIONS.map(({ field, label }) => {
+            const active = sortField === field
+            return (
+              <button
+                key={field}
+                onClick={() => handleSort(field)}
+                className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                  active
+                    ? 'bg-brand text-white border-brand'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-brand hover:text-brand'
+                }`}
+              >
+                {label}
+                {active ? (
+                  sortDir === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />
+                ) : (
+                  <ArrowUpDown size={11} className="opacity-40" />
+                )}
+              </button>
+            )
+          })}
+          {sortField && (
+            <button
+              onClick={() => { setSortField(null); setSortDir('asc') }}
+              className="text-xs text-gray-400 hover:text-brand underline"
+            >
+              Clear sort
+            </button>
+          )}
+        </div>
+
         {/* List */}
         {error && (
           <div className="bg-red-50 text-red-600 rounded-xl p-4 text-sm border border-red-200">
@@ -146,7 +226,7 @@ export default function Demands() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {demands.map((d) => (
+            {sortedDemands.map((d) => (
               <DemandRow key={d['RRD Number']} demand={d} onClick={() => navigate(`/demands/${encodeURIComponent(d['RRD Number'])}`)} />
             ))}
           </div>
