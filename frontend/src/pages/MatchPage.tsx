@@ -354,7 +354,7 @@ export default function MatchPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                 {result.matches.map((m, i) => (
                   <CompactRow
                     key={m.personnel_no}
