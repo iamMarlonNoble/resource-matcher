@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  AlignJustify,
   ArrowLeft,
   Award,
   Briefcase,
@@ -9,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  LayoutList,
   Mail,
   MapPin,
   Settings2,
@@ -38,6 +40,7 @@ export default function MatchPage() {
   const [error, setError] = useState('')
   const [demandExpanded, setDemandExpanded] = useState(true)
   const [hasRun, setHasRun] = useState(false)
+  const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed')
 
   // Load demand details so header and config defaults show immediately
   useEffect(() => {
@@ -265,15 +268,52 @@ export default function MatchPage() {
               </div>
             </div>
 
+            {/* Results header with view toggle */}
+            {result.matches.length > 0 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-500">
+                  {result.matches.length} candidate{result.matches.length !== 1 ? 's' : ''} ranked
+                </p>
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('detailed')}
+                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                      viewMode === 'detailed'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <LayoutList size={13} /> Detailed
+                  </button>
+                  <button
+                    onClick={() => setViewMode('compact')}
+                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                      viewMode === 'compact'
+                        ? 'bg-white text-gray-800 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <AlignJustify size={13} /> Compact
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Match cards */}
             {result.matches.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 No suitable matches found. Try relaxing your filters.
               </div>
-            ) : (
+            ) : viewMode === 'detailed' ? (
               <div className="flex flex-col gap-4">
                 {result.matches.map((m, i) => (
                   <MatchCard key={m.personnel_no} match={m} rank={i + 1} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                {result.matches.map((m, i) => (
+                  <CompactRow key={m.personnel_no} match={m} rank={i + 1} isLast={i === result.matches.length - 1} />
                 ))}
               </div>
             )}
@@ -507,6 +547,54 @@ function MatchCard({ match: m, rank }: { match: MatchResult; rank: number }) {
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         <span className="ml-1">{expanded ? 'Less' : 'More'}</span>
       </button>
+    </div>
+  )
+}
+
+function CompactRow({ match: m, rank, isLast }: { match: MatchResult; rank: number; isLast: boolean }) {
+  const cfg = fitConfig[m.fit_score] ?? fitConfig.Fair
+  const isAvailable =
+    (m.Availability || '').toLowerCase().includes('available') ||
+    (m.Availability || '').toLowerCase().includes('bench')
+
+  return (
+    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${!isLast ? 'border-b border-gray-100' : ''}`}>
+      {/* Rank */}
+      <div className={`w-7 h-7 rounded-lg ${cfg.bg} flex items-center justify-center font-bold text-sm ${cfg.text} shrink-0`}>
+        {rank}
+      </div>
+
+      {/* Name + level */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-gray-900 text-sm">{m.name || m.Name}</span>
+          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Lv {m.Level}</span>
+          {isAvailable && (
+            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+              {m.Availability}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-brand mt-0.5 truncate">
+          {m['Primary Skill']}{m['Primary Proficiency'] ? ` · ${m['Primary Proficiency']}` : ''}
+        </p>
+      </div>
+
+      {/* Location */}
+      {(m['Home Loc'] || m['Resource Location']) && (
+        <span className="hidden sm:flex items-center gap-1 text-xs text-gray-400 shrink-0">
+          <MapPin size={11} />{m['Home Loc'] || m['Resource Location']}
+        </span>
+      )}
+
+      {/* Fit badge + % */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className={`flex items-center gap-1 ${cfg.bg} ${cfg.text} px-2.5 py-1 rounded-full`}>
+          <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+          <span className="text-xs font-bold">{m.fit_score}</span>
+        </div>
+        <span className={`text-sm font-extrabold ${cfg.text} w-10 text-right`}>{m.fit_percentage}%</span>
+      </div>
     </div>
   )
 }
