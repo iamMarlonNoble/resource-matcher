@@ -349,6 +349,19 @@ def match_resources(rrd_number: str):
     required_level = safe_str(demand.get("Management Level", ""))
     level_flex = safe_str(demand.get("Management Level Flex", "N")).upper() == "Y"
 
+    # Pre-filter by level: allow ±2 from required level (1=highest, 13=lowest)
+    LEVEL_WINDOW = 2
+    try:
+        req_lvl_int = int(required_level)
+        lvl_min = req_lvl_int - LEVEL_WINDOW
+        lvl_max = req_lvl_int + LEVEL_WINDOW
+        roster["_level_int"] = pd.to_numeric(roster["Level"], errors="coerce")
+        roster = roster[
+            roster["_level_int"].between(lvl_min, lvl_max)
+        ].copy()
+    except (ValueError, TypeError):
+        pass  # if level is non-numeric, skip level filtering
+
     # Pre-filter by skill keywords
     all_keywords = [
         k.strip().lower()
