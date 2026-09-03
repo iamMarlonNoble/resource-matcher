@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Columns2,
   Clock,
+  Download,
   LayoutList,
   Mail,
   MapPin,
@@ -21,6 +22,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { getDemand, matchResources } from '../api'
 import type { FitScore, MatchConfig, MatchResponse, MatchResult } from '../types'
 import ThemeToggle from '../components/ThemeToggle'
@@ -81,6 +83,48 @@ export default function MatchPage() {
   }
 
   const d = demand
+
+  const exportToExcel = () => {
+    if (!result) return
+    const wb = XLSX.utils.book_new()
+
+    // Sheet 1: Demand details
+    const demandRows = Object.entries(result.demand).map(([k, v]) => ({ Field: k, Value: v }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(demandRows), 'Demand')
+
+    // Sheet 2: Match results
+    const matchRows = result.matches.map((m, i) => ({
+      Rank: i + 1,
+      Name: m.name || m.Name,
+      'Fit Score': m.fit_score,
+      'Fit %': m.fit_percentage,
+      Level: m.Level,
+      'Primary Skill': m['Primary Skill'],
+      'Primary Proficiency': m['Primary Proficiency'],
+      'Secondary Skills': m['Secondary Skills'],
+      Availability: m.Availability,
+      'Roll Off Date': m['Roll Off Date'],
+      'Schedulable As Of': m['Schedulable As Of'],
+      Location: m['Home Loc'] || m['Resource Location'],
+      'Current Projects': m['Current Projects'],
+      Email: m.Email,
+      Reasoning: m.reasoning,
+      Strengths: (m.strengths || []).join('; '),
+      Gaps: (m.gaps || []).join('; '),
+    }))
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matchRows), 'Match Results')
+
+    // Sheet 3: AI report
+    const reportRows = [
+      { Section: 'Overall Assessment', Content: result.summary },
+      { Section: 'Ranking Rationale', Content: result.ranking_rationale },
+      { Section: 'Talent Pool Insights', Content: result.pool_insights },
+    ].filter((r) => r.Content)
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reportRows), 'AI Report')
+
+    const rrd = result.demand['RRD Number'] || decodeURIComponent(rrdNumber || '')
+    XLSX.writeFile(wb, `ResourceMatch_${rrd}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -310,6 +354,13 @@ export default function MatchPage() {
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {result.matches.length} candidate{result.matches.length !== 1 ? 's' : ''} ranked
                 </p>
+                <div className="flex items-center gap-2">
+                <button
+                  onClick={exportToExcel}
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-brand dark:hover:text-brand border border-gray-200 dark:border-gray-700 hover:border-brand px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Download size={13} /> Export Excel
+                </button>
                 <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('detailed')}
@@ -331,6 +382,7 @@ export default function MatchPage() {
                   >
                     <AlignJustify size={13} /> Compact
                   </button>
+                </div>
                 </div>
               </div>
             )}
