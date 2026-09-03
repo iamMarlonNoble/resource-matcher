@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronUp,
+  Columns2,
   Clock,
   LayoutList,
   Mail,
@@ -16,6 +17,7 @@ import {
   Settings2,
   Sparkles,
   User,
+  X,
   XCircle,
   Zap,
 } from 'lucide-react'
@@ -41,6 +43,16 @@ export default function MatchPage() {
   const [demandExpanded, setDemandExpanded] = useState(true)
   const [hasRun, setHasRun] = useState(false)
   const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showComparison, setShowComparison] = useState(false)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) { next.delete(id) } else if (next.size < 4) { next.add(id) }
+      return next
+    })
+  }
 
   // Load demand details so header and config defaults show immediately
   useEffect(() => {
@@ -54,6 +66,8 @@ export default function MatchPage() {
     setError('')
     setResult(null)
     setHasRun(true)
+    setSelectedIds(new Set())
+    setShowComparison(false)
     try {
       const r = await matchResources(decodeURIComponent(rrdNumber), cfg)
       setDemand(r.demand)
@@ -307,19 +321,66 @@ export default function MatchPage() {
             ) : viewMode === 'detailed' ? (
               <div className="flex flex-col gap-4">
                 {result.matches.map((m, i) => (
-                  <MatchCard key={m.personnel_no} match={m} rank={i + 1} />
+                  <MatchCard
+                    key={m.personnel_no}
+                    match={m}
+                    rank={i + 1}
+                    selected={selectedIds.has(m.personnel_no)}
+                    onToggleSelect={() => toggleSelect(m.personnel_no)}
+                    selectDisabled={!selectedIds.has(m.personnel_no) && selectedIds.size >= 4}
+                  />
                 ))}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 {result.matches.map((m, i) => (
-                  <CompactRow key={m.personnel_no} match={m} rank={i + 1} isLast={i === result.matches.length - 1} />
+                  <CompactRow
+                    key={m.personnel_no}
+                    match={m}
+                    rank={i + 1}
+                    isLast={i === result.matches.length - 1}
+                    selected={selectedIds.has(m.personnel_no)}
+                    onToggleSelect={() => toggleSelect(m.personnel_no)}
+                    selectDisabled={!selectedIds.has(m.personnel_no) && selectedIds.size >= 4}
+                  />
                 ))}
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Floating selection bar */}
+      {selectedIds.size >= 1 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selected
+            <span className="text-gray-400 ml-1">· max 4</span>
+          </span>
+          {selectedIds.size >= 2 && (
+            <button
+              onClick={() => setShowComparison(true)}
+              className="flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors"
+            >
+              <Columns2 size={14} /> Compare
+            </button>
+          )}
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-gray-400 hover:text-white transition-colors ml-1"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Comparison modal */}
+      {showComparison && result && (
+        <ComparisonModal
+          matches={result.matches.filter((m) => selectedIds.has(m.personnel_no))}
+          onClose={() => setShowComparison(false)}
+        />
+      )}
     </div>
   )
 }
@@ -375,7 +436,10 @@ const fitConfig: Record<FitScore, { bg: string; border: string; text: string; do
   },
 }
 
-function MatchCard({ match: m, rank }: { match: MatchResult; rank: number }) {
+function MatchCard({ match: m, rank, selected, onToggleSelect, selectDisabled }: {
+  match: MatchResult; rank: number
+  selected: boolean; onToggleSelect: () => void; selectDisabled: boolean
+}) {
   const [expanded, setExpanded] = useState(rank <= 3)
   const cfg = fitConfig[m.fit_score] ?? fitConfig.Fair
 
@@ -389,13 +453,24 @@ function MatchCard({ match: m, rank }: { match: MatchResult; rank: number }) {
     (m.Availability || '').toLowerCase().includes('bench')
 
   return (
-    <div className={`bg-white rounded-2xl border ${cfg.border} shadow-sm overflow-hidden transition-all`}>
+    <div className={`bg-white rounded-2xl border ${selected ? 'border-brand ring-2 ring-brand/20' : cfg.border} shadow-sm overflow-hidden transition-all`}>
       {/* Card header — always visible */}
       <div
         className="p-5 cursor-pointer select-none"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex items-start gap-4">
+          {/* Select checkbox */}
+          <div
+            className="shrink-0 mt-1"
+            onClick={(e) => { e.stopPropagation(); if (!selectDisabled) onToggleSelect() }}
+          >
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+              selected ? 'bg-brand border-brand' : selectDisabled ? 'border-gray-200 opacity-40 cursor-not-allowed' : 'border-gray-300 hover:border-brand'
+            }`}>
+              {selected && <CheckCircle size={13} className="text-white" />}
+            </div>
+          </div>
           {/* Rank + avatar */}
           <div className="shrink-0 flex flex-col items-center gap-1">
             <div className={`w-11 h-11 rounded-xl ${cfg.bg} flex items-center justify-center font-bold text-lg ${cfg.text}`}>
@@ -551,14 +626,27 @@ function MatchCard({ match: m, rank }: { match: MatchResult; rank: number }) {
   )
 }
 
-function CompactRow({ match: m, rank, isLast }: { match: MatchResult; rank: number; isLast: boolean }) {
+function CompactRow({ match: m, rank, isLast, selected, onToggleSelect, selectDisabled }: {
+  match: MatchResult; rank: number; isLast: boolean
+  selected: boolean; onToggleSelect: () => void; selectDisabled: boolean
+}) {
   const cfg = fitConfig[m.fit_score] ?? fitConfig.Fair
   const isAvailable =
     (m.Availability || '').toLowerCase().includes('available') ||
     (m.Availability || '').toLowerCase().includes('bench')
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${!isLast ? 'border-b border-gray-100' : ''}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${selected ? 'bg-brand/5' : ''} ${!isLast ? 'border-b border-gray-100' : ''}`}>
+      {/* Checkbox */}
+      <div
+        onClick={() => { if (!selectDisabled) onToggleSelect() }}
+        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+          selected ? 'bg-brand border-brand' : selectDisabled ? 'border-gray-200 opacity-40 cursor-not-allowed' : 'border-gray-300 hover:border-brand'
+        }`}
+      >
+        {selected && <CheckCircle size={13} className="text-white" />}
+      </div>
+
       {/* Rank */}
       <div className={`w-7 h-7 rounded-lg ${cfg.bg} flex items-center justify-center font-bold text-sm ${cfg.text} shrink-0`}>
         {rank}
@@ -594,6 +682,141 @@ function CompactRow({ match: m, rank, isLast }: { match: MatchResult; rank: numb
           <span className="text-xs font-bold">{m.fit_score}</span>
         </div>
         <span className={`text-sm font-extrabold ${cfg.text} w-10 text-right`}>{m.fit_percentage}%</span>
+      </div>
+    </div>
+  )
+}
+
+function ComparisonModal({ matches, onClose }: { matches: MatchResult[]; onClose: () => void }) {
+  const colWidth = matches.length === 2 ? 'w-1/2' : matches.length === 3 ? 'w-1/3' : 'w-1/4'
+
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex border-b border-gray-100 last:border-0">
+      <div className="w-36 shrink-0 px-4 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-start pt-3.5">
+        {label}
+      </div>
+      <div className="flex flex-1 divide-x divide-gray-100">{children}</div>
+    </div>
+  )
+
+  const Cell = ({ children }: { children: React.ReactNode }) => (
+    <div className={`${colWidth} px-4 py-3 text-sm text-gray-700 min-w-0`}>{children}</div>
+  )
+
+  return (
+    <div className="fixed inset-0 z-30 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 shrink-0">
+          <Columns2 size={18} className="text-brand" />
+          <h2 className="font-bold text-gray-900">Comparing {matches.length} Candidates</h2>
+          <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Candidate name headers */}
+        <div className="flex border-b border-gray-200 shrink-0">
+          <div className="w-36 shrink-0" />
+          <div className="flex flex-1 divide-x divide-gray-100">
+            {matches.map((m) => {
+              const cfg = fitConfig[m.fit_score] ?? fitConfig.Fair
+              return (
+                <div key={m.personnel_no} className={`${colWidth} px-4 py-3`}>
+                  <p className="font-bold text-gray-900 text-sm truncate">{m.name || m.Name}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className={`text-xs font-bold ${cfg.text}`}>{m.fit_percentage}%</span>
+                    <div className={`flex items-center gap-1 ${cfg.bg} ${cfg.text} px-2 py-0.5 rounded-full`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                      <span className="text-xs font-semibold">{m.fit_score}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Scrollable rows */}
+        <div className="overflow-y-auto flex-1">
+          <Row label="Level">
+            {matches.map((m) => <Cell key={m.personnel_no}>Level {m.Level}</Cell>)}
+          </Row>
+          <Row label="Primary Skill">
+            {matches.map((m) => <Cell key={m.personnel_no}><span className="text-brand font-medium">{m['Primary Skill']}</span></Cell>)}
+          </Row>
+          <Row label="Proficiency">
+            {matches.map((m) => <Cell key={m.personnel_no}>{m['Primary Proficiency'] || '—'}</Cell>)}
+          </Row>
+          <Row label="Secondary Skills">
+            {matches.map((m) => (
+              <Cell key={m.personnel_no}>
+                {m['Secondary Skills']
+                  ? m['Secondary Skills'].split(',').map((s) => s.trim()).filter(Boolean).map((s) => (
+                      <span key={s} className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full mr-1 mb-1">{s}</span>
+                    ))
+                  : '—'}
+              </Cell>
+            ))}
+          </Row>
+          <Row label="Availability">
+            {matches.map((m) => {
+              const avail = m.Availability || '—'
+              const isAvail = avail.toLowerCase().includes('available') || avail.toLowerCase().includes('bench')
+              return (
+                <Cell key={m.personnel_no}>
+                  <span className={isAvail ? 'text-emerald-600 font-medium' : ''}>{avail}</span>
+                </Cell>
+              )
+            })}
+          </Row>
+          <Row label="Schedulable">
+            {matches.map((m) => <Cell key={m.personnel_no}>{m['Schedulable As Of'] || '—'}</Cell>)}
+          </Row>
+          <Row label="Roll-off">
+            {matches.map((m) => <Cell key={m.personnel_no}>{m['Roll Off Date'] || '—'}</Cell>)}
+          </Row>
+          <Row label="Location">
+            {matches.map((m) => <Cell key={m.personnel_no}>{m['Home Loc'] || m['Resource Location'] || '—'}</Cell>)}
+          </Row>
+          <Row label="Strengths">
+            {matches.map((m) => (
+              <Cell key={m.personnel_no}>
+                {m.strengths?.length
+                  ? <ul className="space-y-1">{m.strengths.map((s, i) => <li key={i} className="flex gap-1.5"><CheckCircle size={12} className="text-emerald-500 shrink-0 mt-0.5" />{s}</li>)}</ul>
+                  : '—'}
+              </Cell>
+            ))}
+          </Row>
+          <Row label="Gaps">
+            {matches.map((m) => (
+              <Cell key={m.personnel_no}>
+                {m.gaps?.length
+                  ? <ul className="space-y-1">{m.gaps.map((g, i) => <li key={i} className="flex gap-1.5"><XCircle size={12} className="text-amber-400 shrink-0 mt-0.5" />{g}</li>)}</ul>
+                  : <span className="text-emerald-600 text-xs font-medium">No gaps</span>}
+              </Cell>
+            ))}
+          </Row>
+          <Row label="AI Reasoning">
+            {matches.map((m) => (
+              <Cell key={m.personnel_no}>
+                <p className="text-xs text-gray-600 leading-relaxed">{m.reasoning || '—'}</p>
+              </Cell>
+            ))}
+          </Row>
+          <Row label="Email">
+            {matches.map((m) => (
+              <Cell key={m.personnel_no}>
+                {m.Email
+                  ? <a href={`mailto:${m.Email}`} className="text-brand hover:underline text-xs">{m.Email}</a>
+                  : '—'}
+              </Cell>
+            ))}
+          </Row>
+        </div>
       </div>
     </div>
   )
