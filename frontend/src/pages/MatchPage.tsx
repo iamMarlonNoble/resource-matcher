@@ -88,9 +88,24 @@ export default function MatchPage() {
     if (!result) return
     const wb = XLSX.utils.book_new()
 
-    // Sheet 1: Demand details
-    const demandRows = Object.entries(result.demand).map(([k, v]) => ({ Field: k, Value: v }))
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(demandRows), 'Demand')
+    const autoWidth = (rows: Record<string, unknown>[], maxWidth = 60) => {
+      if (!rows.length) return []
+      const keys = Object.keys(rows[0])
+      return keys.map((k) => ({
+        wch: Math.min(
+          maxWidth,
+          Math.max(k.length, ...rows.map((r) => String(r[k] ?? '').length)),
+        ),
+      }))
+    }
+
+    // Sheet 1: Demand details — one row per demand, fields as columns
+    const demandRecord = Object.fromEntries(
+      Object.entries(result.demand).filter(([, v]) => v)
+    )
+    const wsD = XLSX.utils.json_to_sheet([demandRecord])
+    wsD['!cols'] = autoWidth([demandRecord])
+    XLSX.utils.book_append_sheet(wb, wsD, 'Demand')
 
     // Sheet 2: Match results
     const matchRows = result.matches.map((m, i) => ({
@@ -112,7 +127,9 @@ export default function MatchPage() {
       Strengths: (m.strengths || []).join('; '),
       Gaps: (m.gaps || []).join('; '),
     }))
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matchRows), 'Match Results')
+    const wsM = XLSX.utils.json_to_sheet(matchRows)
+    wsM['!cols'] = autoWidth(matchRows)
+    XLSX.utils.book_append_sheet(wb, wsM, 'Match Results')
 
     // Sheet 3: AI report
     const reportRows = [
@@ -120,7 +137,9 @@ export default function MatchPage() {
       { Section: 'Ranking Rationale', Content: result.ranking_rationale },
       { Section: 'Talent Pool Insights', Content: result.pool_insights },
     ].filter((r) => r.Content)
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reportRows), 'AI Report')
+    const wsR = XLSX.utils.json_to_sheet(reportRows)
+    wsR['!cols'] = [{ wch: 25 }, { wch: 100 }]
+    XLSX.utils.book_append_sheet(wb, wsR, 'AI Report')
 
     const rrd = result.demand['RRD Number'] || decodeURIComponent(rrdNumber || '')
     XLSX.writeFile(wb, `ResourceMatch_${rrd}_${new Date().toISOString().slice(0, 10)}.xlsx`)
